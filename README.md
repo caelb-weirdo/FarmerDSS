@@ -1,12 +1,15 @@
-# Farmer's DSS
+# Farmar's DSS
 
-Farmer's DSS is a simple decision support system for crop planning. It uses
+Farmar's DSS is a simple decision support system for crop planning. It uses
 HTML, CSS, vanilla JavaScript, PHP, and MySQL through XAMPP.
 
 ## Main Features
 
 - **User Authentication**: Login and registration system with email/password authentication.
 - **Role-Based Access**: Support for Farmer and Admin user roles.
+- **Admin Panel**: Role-based Admin dashboard to manage and update crops, fertilizer rules, and market prices directly from the browser UI.
+- **Real-Time Weather**: Integration with a real weather API (Open-Meteo) for live weather conditions and dynamic agricultural recommendations.
+- **Show/Hide Password**: Modern password toggle with SVG icons on Login and Register pages.
 - **Responsive dashboard** with weather, alerts, field summary, and DSS advice.
 - **Crop recommendation engine** using soil, season, water source, budget, and market demand.
 - **Clear explanation** for each recommendation.
@@ -29,6 +32,7 @@ HTML, CSS, vanilla JavaScript, PHP, and MySQL through XAMPP.
 ```text
 FarmerDSS/
   api/
+    admin_market.php
     auth.php
     data.php
     db.php
@@ -91,7 +95,7 @@ The system uses email/password authentication with session-based login.
 
 **Demo Users:**
 
-- **Admin Account**: admin@farmer-dss.com | Password: password123
+- **Admin Account**: admin@gmail.com | Password: admin@123
 - **Farmer Account**: farmer@farmer-dss.com | Password: password123
 
 **Create a New Account:**
@@ -176,6 +180,10 @@ Paddy may score highest because it matches soil, season, water, budget, and dema
 ```
 
 ## PHP API Files
+
+### api/admin_market.php
+
+Handles Admin role operations for updating and managing crops, fertilizer rules, and market prices in the database.
 
 ### api/db.php
 
@@ -272,10 +280,7 @@ If XAMPP or MySQL is not running, the system uses the local demo data in
 - Add email verification for new registrations.
 - Add "Remember Me" login option with persistent tokens.
 - Add field profile management for users.
-- Add admin panel to manage crops, fertilizer rules, market prices, and weather data.
-- Add role-based dashboards for Admin users.
 - Add printable recommendation report.
-- Add real weather API integration.
 - Add charts for market price history.
 - Add password reset functionality.
 

@@ -134,8 +134,8 @@ VALUES
   ('Jaffna', 30, 'Dry and windy conditions expected.', 'Water Risk: Medium', 1, CURDATE()),
   ('Kandy', 25, 'Cool weather with scattered rainfall.', 'Rain Risk: Medium', 1, CURDATE());
 
--- Sample users (password: password123)
+-- Sample users (admin: admin@gmail.com / admin@123, farmer: farmer@farmer-dss.com / password123)
 INSERT INTO users (email, password_hash, full_name, role)
 VALUES
-  ('admin@farmer-dss.com', '$2y$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcg7b3XeKeUxWdeS86E36ZxQrCa', 'Admin User', 'Admin'),
+  ('admin@gmail.com', '$2y$10$vEmq2o0inklst4p9XRPXN.RNwkumuz0H3AbCxJg2W.A.hacKleL3.', 'Admin User', 'Admin'),
   ('farmer@farmer-dss.com', '$2y$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcg7b3XeKeUxWdeS86E36ZxQrCa', 'Sample Farmer', 'Farmer');

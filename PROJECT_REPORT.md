@@ -1,8 +1,8 @@
-# Farmer's Hub DSS Project Report
+# Farmar's DSS Project Report
 
 ## Project Title
 
-Farmer's Hub Decision Support System
+Farmar's Decision Support System
 
 ## Problem Statement
 
@@ -101,6 +101,7 @@ Maximum score is limited to 100.
 | api/db.php | Database connection |
 | api/data.php | Loads database data for frontend |
 | api/recommend.php | Calculates and saves recommendations |
+| api/admin_market.php | Handles admin data updates (crops, fertilizers, market prices) |
 
 ## Testing Checklist
 
@@ -117,7 +118,7 @@ Maximum score is limited to 100.
 
 ## Conclusion
 
-Farmer's Hub DSS provides a clear, simple, and understandable decision support
+Farmar's DSS provides a clear, simple, and understandable decision support
 workflow for crop planning. It combines frontend design, rule-based decision
 logic, and XAMPP/MySQL database storage while staying suitable for an HNDIT-level
 HTML, CSS, JavaScript, PHP, and MySQL project.

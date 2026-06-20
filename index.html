@@ -3,16 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Farmer's Hub DSS</title>
+    <title>Farmar's DSS</title>
+    <link rel="icon" type="image/png" href="logo.png" />
+    <link rel="apple-touch-icon" href="logo.png" />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <div class="app-shell">
       <header class="topbar">
-        <a class="brand" href="#dashboard" aria-label="Farmer's Hub DSS home">
-          <span class="brand-mark">FH</span>
+        <a class="brand" href="#dashboard" aria-label="Farmar's DSS home">
+          <img src="logo.png" alt="Farmar's DSS Logo" class="brand-mark brand-logo" />
           <span>
-            <span class="brand-label">Farmer's Hub DSS</span>
+            <span class="brand-label">Farmar's DSS</span>
             <span class="brand-subtitle"
               >Smart decisions for every harvest</span
             >
@@ -300,7 +302,7 @@
               <div class="profit-list" id="profit-list"></div>
             </article>
           </div>
-        </section>
+          </section>
 
         <section id="admin-panel" class="page">
           <div class="section-title">
@@ -335,6 +337,24 @@
       </main>
 
       <div class="toast" id="toast" aria-live="polite"></div>
+
+      <!-- Alert Popup Modal -->
+      <div class="modal-overlay" id="alert-modal-overlay" aria-hidden="true">
+        <div class="modal-card alert-modal-card" role="dialog" aria-modal="true" aria-labelledby="alert-modal-title">
+          <button class="modal-close" id="alert-modal-close" aria-label="Close alerts">&#x2715;</button>
+          <div class="modal-header">
+            <div class="modal-crop-icon alert-icon">&#x26A0;</div>
+            <div>
+              <p class="eyebrow">Active Alerts</p>
+              <h2 id="alert-modal-title">Decision Alerts</h2>
+            </div>
+          </div>
+          <div class="modal-body" id="alert-modal-body"></div>
+          <div class="modal-footer">
+            <button class="outline-button" id="alert-modal-close-btn">Dismiss</button>
+          </div>
+        </div>
+      </div>
 
       <div class="modal-overlay" id="modal-overlay" aria-hidden="true">
         <div

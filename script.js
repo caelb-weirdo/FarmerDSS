@@ -22,6 +22,20 @@ async function checkAuth() {
   }
 }
 
+async function loadAllWeather() {
+  const districts = Object.keys(DISTRICT_COORDS);
+  await Promise.all(districts.map(async (district) => {
+    const live = await fetchLiveWeather(district);
+    if (live) weatherByDistrict[district] = live;
+  }));
+  // Update default weatherData to current district
+  const sel = document.getElementById("district");
+  const cur = sel ? sel.value : "Trincomalee";
+  weatherData = weatherByDistrict[cur] || weatherData;
+  refreshDashboard();
+  document.getElementById("alert-count").textContent = weatherData.alerts;
+}
+
 function updateProfileUI() {
   if (!currentUser) return;
 
@@ -55,6 +69,73 @@ let weatherData = {
   logs: 7,
   risk: "Rain Risk: High",
 };
+
+// District coordinates for Open-Meteo API
+const DISTRICT_COORDS = {
+  Trincomalee: { lat: 8.5922, lon: 81.2152 },
+  Anuradhapura: { lat: 8.3114, lon: 80.4037 },
+  Jaffna:       { lat: 9.6615, lon: 80.0255 },
+  Kandy:        { lat: 7.2906, lon: 80.6337 },
+};
+
+function weatherCodeToText(code, isRain) {
+  if (code === 0) return "Clear sky and sunny conditions.";
+  if (code <= 2) return "Partly cloudy with some sun.";
+  if (code === 3) return "Overcast and cloudy skies.";
+  if (code <= 48) return "Foggy or mist conditions expected.";
+  if (code <= 57) return "Light drizzle expected.";
+  if (code <= 67) return "Rain showers expected. Plan field work accordingly.";
+  if (code <= 77) return "Snow or sleet possible — unusual weather alert.";
+  if (code <= 82) return "Heavy rain showers expected. Delay fertilizer application.";
+  if (code <= 99) return "Thunderstorm risk. Secure equipment and avoid open fields.";
+  return "Mixed conditions — check local forecast.";
+}
+
+function weatherCodeToRisk(code, precipProb) {
+  if (precipProb >= 70 || code >= 80) return "Rain Risk: High";
+  if (precipProb >= 40 || (code >= 61 && code < 80)) return "Rain Risk: Medium";
+  if (code >= 45 && code < 61) return "Fog Risk: Low";
+  if (code === 0 || code <= 2) return "Weather Risk: Low";
+  return "Weather Risk: Moderate";
+}
+
+async function fetchLiveWeather(district) {
+  const coords = DISTRICT_COORDS[district];
+  if (!coords) return null;
+  try {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}` +
+      `&current=temperature_2m,weathercode,windspeed_10m` +
+      `&daily=precipitation_probability_max,weathercode` +
+      `&timezone=Asia%2FColombo&forecast_days=2`;
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const d = await res.json();
+    const temp    = Math.round(d.current.temperature_2m);
+    const code    = d.current.weathercode;
+    const precip  = d.daily.precipitation_probability_max[0] ?? 0;
+    const tmrPrec = d.daily.precipitation_probability_max[1] ?? 0;
+    const tmrCode = d.daily.weathercode[1] ?? code;
+    const riskText = weatherCodeToRisk(tmrCode, tmrPrec);
+    const alertCount = (tmrPrec >= 70 ? 1 : 0) + (code >= 80 ? 1 : 0) + (tmrCode >= 80 ? 1 : 0);
+    return {
+      temp,
+      text: `${weatherCodeToText(code, precip >= 40)} Tomorrow: ${tmrPrec}% rain chance.`,
+      status: "Live Weather",
+      alerts: Math.max(1, alertCount),
+      fields: weatherData.fields,
+      logs: weatherData.logs,
+      risk: riskText,
+      precipToday: precip,
+      precipTomorrow: tmrPrec,
+      windspeed: d.current.windspeed_10m,
+      weatherCode: code,
+      district,
+    };
+  } catch (e) {
+    console.warn("Weather API failed:", e.message);
+    return null;
+  }
+}
 
 let weatherByDistrict = {
   Trincomalee: weatherData,
@@ -597,9 +678,7 @@ function bindEvents() {
     .addEventListener("click", handleLogout);
 
   document.getElementById("warning-button").addEventListener("click", () => {
-    showToast(
-      "Weather alert: Delay fertilizer application before tomorrow's heavy rain.",
-    );
+    openAlertModal();
   });
 
   document
@@ -652,16 +731,87 @@ function bindEvents() {
         closeModal();
       }
     });
+
+  // Alert modal close buttons
+  document.getElementById("alert-modal-close").addEventListener("click", closeAlertModal);
+  document.getElementById("alert-modal-close-btn").addEventListener("click", closeAlertModal);
+  document.getElementById("alert-modal-overlay").addEventListener("click", (e) => {
+    if (e.target.id === "alert-modal-overlay") closeAlertModal();
+  });
+}
+
+function openAlertModal() {
+  const wd = weatherData;
+  const isCriticalRain = (wd.precipTomorrow ?? 70) >= 70;
+  const isHighWind = (wd.windspeed ?? 0) > 35;
+  const isThunder = (wd.weatherCode ?? 0) >= 95;
+
+  const alerts = [
+    {
+      critical: isCriticalRain,
+      badge: isCriticalRain ? "Critical" : "Warning",
+      title: `Rain Alert — ${wd.district || "District"}: ${wd.precipTomorrow ?? "—"}% chance tomorrow`,
+      detail: "Delay fertilizer and pesticide application before rain to prevent nutrient runoff.",
+    },
+    {
+      critical: isThunder,
+      badge: isThunder ? "Critical" : "Info",
+      title: isThunder ? "Thunderstorm Risk Detected" : "Pest & Disease Monitoring Active",
+      detail: isThunder
+        ? "Secure farming equipment. Avoid open fields during lightning risk period."
+        : "Monitor brown planthopper and fungal disease after wet conditions.",
+    },
+  ];
+
+  if (isHighWind) {
+    alerts.push({
+      critical: false,
+      badge: "Warning",
+      title: `High Wind Speed: ${wd.windspeed} km/h`,
+      detail: "Strong winds may damage tall crops. Consider windbreaks for vulnerable plants.",
+    });
+  }
+
+  const body = document.getElementById("alert-modal-body");
+  body.innerHTML = `
+    <ul class="alert-list">
+      ${alerts.map((a) => `
+        <li class="${a.critical ? "alert-critical" : ""}">
+          <span class="alert-badge">${a.badge}</span>
+          <div class="alert-text">
+            <strong>${a.title}</strong>
+            <span>${a.detail}</span>
+          </div>
+        </li>
+      `).join("")}
+    </ul>
+    <p style="margin-top:14px;font-size:0.85rem;color:var(--muted);">Weather data from Open-Meteo · Updated live</p>
+  `;
+
+  const overlay = document.getElementById("alert-modal-overlay");
+  overlay.classList.add("show");
+  overlay.setAttribute("aria-hidden", "false");
+}
+
+function closeAlertModal() {
+  const overlay = document.getElementById("alert-modal-overlay");
+  overlay.classList.remove("show");
+  overlay.setAttribute("aria-hidden", "true");
 }
 
 async function startApp() {
   const isAuthenticated = await checkAuth();
   if (!isAuthenticated) {
-    return; // User will be redirected by checkAuth
+    return;
   }
 
   updateDate();
   await loadDataFromApi();
+
+  // Fetch live weather for all districts in parallel
+  showToast("Fetching live weather data...");
+  await loadAllWeather();
+
   refreshDashboard();
   renderMarket();
   renderFertilizerCalculator();
