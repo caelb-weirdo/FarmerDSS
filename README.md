@@ -152,10 +152,20 @@ If your MySQL password is different, update `db.php`.
 - Add charts for market price history.
 - Add more districts and crop varieties.
 
-## Project Notes
 
-This project is intentionally built with plain, simple code so that any HNDIT
-student can open a file, read it top to bottom, and understand exactly what it
-does. There are no hidden frameworks or complex build tools. HTML controls the
-structure, CSS controls the design, JavaScript handles the live weather and
-calculator, and PHP with MySQL does all the database work.
+## Team 4
+
+- N. Arsh – TRI/IT/2025/F/06 ( C )
+- M.A.M. Atheef – TRI/IT/2025/F/29
+- E. Caleb – TRI/IT/2025/F/39
+- A.N.R. Ayyas – TRI/IT/2025/F/54
+- M.S.S. Simar – TRI/IT/2025/F/82
+
+- S.Sanusiyajini – TRI/IT/2025/F/16
+- N. Sajera – TRI/IT/2025/F/65 ( V.C )
+- M.N.F. Nafla – TRI/IT/2025/F/77 
+- A.F. Farhana – TRI/IT/2025/F/94
+- A.F. Sujitha – TRI/IT/2025/F/97
+- S. Sivaranjini – TRI/IT/2025/F/106 
+
+- Project Supervisor: Don Bosco Prashanth
