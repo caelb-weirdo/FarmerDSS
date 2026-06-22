@@ -1,6 +1,6 @@
-# Farmar's DSS
+# Farmars DSS
 
-Farmar's DSS is a simple Decision Support System for crop planning, built with
+Farmars DSS is a simple Decision Support System for crop planning, built with
 plain PHP, HTML, CSS, JavaScript, and MySQL — running on XAMPP. It uses a
 traditional server-side PHP architecture so the code is easy for beginners to
 read and understand.
