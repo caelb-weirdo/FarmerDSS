@@ -53,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Register - Farmar's DSS</title>
+    <title>Register - Farmers DSS</title>
     <link rel="icon" type="image/png" href="logo.png" />
     <link rel="apple-touch-icon" href="logo.png" />
     <link rel="stylesheet" href="styles.css" />
@@ -62,8 +62,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="auth-container">
       <div class="auth-card">
         <div class="auth-header">
-          <img src="logo.png" alt="Farmar's DSS Logo" class="brand-mark-auth brand-logo-auth" />
-          <h1>Farmar's DSS</h1>
+          <img src="logo.png" alt="Farmers DSS Logo" class="brand-mark-auth brand-logo-auth" />
+          <h1>Farmers DSS</h1>
           <p class="auth-subtitle">Smart decisions for every harvest</p>
         </div>
 

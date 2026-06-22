@@ -1,6 +1,6 @@
-# Farmar's DSS
+# Farmers DSS
 
-Farmar's DSS is a simple Decision Support System for crop planning, built with
+Farmers DSS is a simple Decision Support System for crop planning, built with
 plain PHP, HTML, CSS, JavaScript, and MySQL — running on XAMPP. It uses a
 traditional server-side PHP architecture so the code is easy for beginners to
 read and understand.
@@ -28,7 +28,7 @@ read and understand.
 ## Folder Structure
 
 ```text
-FarmerDSS/
+Farmers DSS/
   db.php           — Database connection and auth helper functions
   index.php        — Main application (all pages in one file)
   login.php        — Login form and POST handler
@@ -43,10 +43,10 @@ FarmerDSS/
 
 ## XAMPP Setup
 
-1. Copy the `FarmerDSS` folder into your XAMPP `htdocs` folder.
+1. Copy the `Farmers DSS` folder into your XAMPP `htdocs` folder.
 
 ```text
-C:\xampp\htdocs\FarmerDSS
+C:\xampp\htdocs\Farmers DSS
 ```
 
 2. Open the XAMPP Control Panel.
@@ -69,7 +69,7 @@ http://localhost/phpmyadmin
 6. Open the project:
 
 ```text
-http://localhost/FarmerDSS/login.php
+http://localhost/Farmers DSS/login.php
 ```
 
 ## Demo Credentials
