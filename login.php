@@ -8,6 +8,11 @@ if (isLoggedIn()) {
 }
 
 $error = '';
+$success = '';
+
+if (isset($_GET['registered']) && $_GET['registered'] == '1') {
+    $success = 'Account created successfully. Please log in.';
+}
 
 // Handle login submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -68,6 +73,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           </div>
 
           <button type="submit" class="primary-button">Sign In</button>
+
+          <?php if (!empty($success)): ?>
+            <p class="auth-error" style="display:block; background:rgba(34,197,94,0.1); color:var(--accent); border-color:rgba(34,197,94,0.22);"><?php echo htmlspecialchars($success); ?></p>
+          <?php endif; ?>
 
           <?php if (!empty($error)): ?>
             <p class="auth-error" style="display:block;"><?php echo htmlspecialchars($error); ?></p>

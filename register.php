@@ -30,13 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $pdo->prepare('INSERT INTO users (email, full_name, password_hash) VALUES (?, ?, ?)');
             $stmt->execute([$email, $fullName, $passwordHash]);
             
-            // Log the user in
-            $_SESSION['user_id'] = $pdo->lastInsertId();
-            $_SESSION['email'] = $email;
-            $_SESSION['full_name'] = $fullName;
-            $_SESSION['role'] = 'Farmer'; // Default role
-            
-            header("Location: index.php");
+            header("Location: login.php?registered=1");
             exit;
         } catch (PDOException $e) {
             if (strpos($e->getMessage(), 'Duplicate entry') !== false) {
