@@ -182,7 +182,10 @@ usort($rankedMarkets, function($a, $b) { return $b['finalScore'] - $a['finalScor
     <title>Farmers DSS</title>
     <link rel="icon" type="image/png" href="logo.png" />
     <link rel="apple-touch-icon" href="logo.png" />
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles.css?v=20230624" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script>
         // Pass essential data to minimal JS
         var fertilizerRules = <?php echo json_encode($fertilizerRules); ?>;
@@ -231,17 +234,53 @@ usort($rankedMarkets, function($a, $b) { return $b['finalScore'] - $a['finalScor
 
       <main class="pages">
         <section id="dashboard" class="page active">
+          <!-- ── HERO BANNER ─────────────────────────── -->
+          <div class="dashboard-hero">
+            <div class="dashboard-hero-content">
+              <p class="eyebrow">Sustainable Farming</p>
+              <h2>Grow the Future with<br>Sustainable Agriculture</h2>
+              <p>Smart crop decisions, real-time weather & market insights — right at your fingertips.</p>
+              <button class="hero-cta-btn" onclick="showPage('crop-advisory')">
+                Start Your Season &#8594;
+              </button>
+            </div>
+          </div>
+
+          <!-- ── STATS ROW ──────────────────────────── -->
+          <div class="stats-row">
+            <div class="stat-item">
+              <span class="stat-num">100<span class="stat-suffix">%</span></span>
+              <div class="stat-label">Customer Satisfaction</div>
+            </div>
+            <div class="stat-item">
+              <span class="stat-num">20<span class="stat-suffix">+</span></span>
+              <div class="stat-label">Years of Experience</div>
+            </div>
+            <div class="stat-item">
+              <span class="stat-num"><?php echo count($crops); ?><span class="stat-suffix">+</span></span>
+              <div class="stat-label">Crops Tracked</div>
+            </div>
+          </div>
+
+          <!-- ── INNOVATING SECTION ─────────────────── -->
           <div class="page-header">
             <div>
-              <p class="eyebrow">Dashboard</p>
-              <h1>Welcome back, <?php echo explode(' ', $_SESSION['full_name'])[0]; ?>!</h1>
-              <p class="date-text" id="current-date"><?php echo date('F j, Y'); ?></p>
+              <p class="eyebrow">Innovating the Future</p>
+              <h1>of Agriculture</h1>
             </div>
             <div class="status-pill">
               <span class="status-dot"></span>
               <span id="status-pill-text">System Online</span>
             </div>
           </div>
+
+          <!-- ── FARM PHOTO GRID ────────────────────── -->
+          <div class="farm-photo-grid">
+            <img src="paddy_hero.png"  alt="Paddy field overview" />
+            <img src="farm_grid1.png"  alt="Rice seedlings" />
+            <img src="farm_grid2.png"  alt="Planting rice" />
+          </div>
+
 
           <div class="dashboard-grid">
             <article class="panel weather-card">
