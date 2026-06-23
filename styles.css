@@ -1034,3 +1034,41 @@ td { font-weight: 600; color: var(--text); }
   .hiw-hero { padding: 24px 20px; }
   .hiw-cta  { padding: 32px 20px; }
 }
+
+/* ── FOOTER SOCIALS ─────────────────────────────────── */
+.footer-contact {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.footer-section-label {
+  font-weight: 800;
+  font-size: 0.9rem;
+  color: #fff;
+  margin-bottom: 4px;
+}
+.footer-socials {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.social-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.7);
+  display: grid;
+  place-items: center;
+  transition: all 0.2s ease;
+}
+.social-btn:hover {
+  background: var(--accent);
+  color: var(--accent-text);
+  transform: translateY(-2px);
+}
+.footer-email-text {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 4px;
+}

@@ -7,14 +7,16 @@ read and understand.
 
 ## Main Features
 
+- **Modern Agri-Tech UI** — A premium, dark-nav, lime-accented interface powered by custom CSS and Plus Jakarta Sans typography.
 - **Secure Login & Registration** — Email and password authentication with bcrypt hashing. Sessions are managed entirely by PHP.
 - **Role-Based Access** — Two roles: `Farmer` and `Admin`. Admin users see an extra Admin Panel tab.
-- **Dashboard** — Personalized welcome, live weather card, daily DSS advice, and metric summary cards.
+- **Dashboard** — Personalized welcome, farm photo grid, live weather card, daily DSS advice, and metric summary cards.
 - **Live Weather (All Districts)** — Fetches real-time weather for Trincomalee, Anuradhapura, Jaffna, and Kandy from the Open-Meteo API.
 - **Crop Advisory Engine** — Select your district, soil type, season, water source, budget, and market demand. The PHP backend scores all crops and shows the top 3 matches with an explanation.
 - **Fertilizer Calculator** — Select a crop and land size. JavaScript instantly shows required fertilizer kg and estimated total cost in LKR.
 - **Market Watch** — Live table of crop prices, demand levels, and price trends loaded directly from MySQL.
-- **Admin Panel** — Admins can update market prices and add entirely new crops (with suitability rules, growth guides, and fertilizer dosages) without touching the database directly.
+- **Admin Panel** — Admins can update market prices and add entirely new crops without touching the database directly.
+- **Contact Us Footer** — Beautifully integrated social media links and contact email for user support.
 
 ## Technology Used
 
