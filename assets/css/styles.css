@@ -545,7 +545,7 @@ td { font-weight: 600; color: var(--text); }
   display: grid; place-items: center;
   padding: 20px;
   background:
-    url('paddy_hero.png') center/cover no-repeat;
+    url('../images/paddy_hero.png') center/cover no-repeat;
   position: relative;
 }
 
@@ -774,7 +774,7 @@ td { font-weight: 600; color: var(--text); }
 .hiw-hero::before {
   content: '';
   position: absolute; inset: 0;
-  background: url('paddy_hero.png') center/cover no-repeat;
+  background: url('../images/paddy_hero.png') center/cover no-repeat;
   opacity: 0.15;
 }
 .hiw-hero-text { position: relative; z-index: 1; }
@@ -864,7 +864,7 @@ td { font-weight: 600; color: var(--text); }
 .hiw-cta::before {
   content: '';
   position: absolute; inset: 0;
-  background: url('paddy_hero.png') center/cover no-repeat;
+  background: url('../images/paddy_hero.png') center/cover no-repeat;
   opacity: 0.1;
 }
 .hiw-cta h2 { position: relative; margin: 0 0 10px; font-size: clamp(1.3rem,3vw,1.9rem); font-weight: 900; }
@@ -891,7 +891,7 @@ td { font-weight: 600; color: var(--text); }
   min-height: 340px;
   display: flex;
   align-items: flex-end;
-  background: url('paddy_hero.png') center/cover no-repeat;
+  background: url('../images/paddy_hero.png') center/cover no-repeat;
 }
 .dashboard-hero::after {
   content: '';

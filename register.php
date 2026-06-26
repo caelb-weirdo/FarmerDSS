@@ -1,5 +1,5 @@
 <?php
-require_once 'db.php';
+require_once __DIR__ . '/includes/db.php';
 
 // If already logged in, redirect to dashboard
 if (isLoggedIn()) {
@@ -48,9 +48,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Register - Farmers DSS</title>
-    <link rel="icon" type="image/png" href="logo.png" />
-    <link rel="apple-touch-icon" href="logo.png" />
-    <link rel="stylesheet" href="styles.css?v=20230624" />
+    <link rel="icon" type="image/png" href="assets/images/logo.png" />
+    <link rel="apple-touch-icon" href="assets/images/logo.png" />
+    <link rel="stylesheet" href="assets/css/styles.css?v=20230624" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800;900&display=swap" rel="stylesheet">
@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="auth-container">
       <div class="auth-card">
         <div class="auth-header">
-          <img src="logo.png" alt="Farmers DSS Logo" class="brand-mark-auth brand-logo-auth" />
+          <img src="assets/images/logo.png" alt="Farmers DSS Logo" class="brand-mark-auth brand-logo-auth" />
           <h1>Farmers DSS</h1>
           <p class="auth-subtitle">Smart decisions for every harvest</p>
         </div>

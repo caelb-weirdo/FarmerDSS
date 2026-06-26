@@ -30,17 +30,29 @@ read and understand.
 ## Folder Structure
 
 ```text
-Farmers DSS/
-  db.php           — Database connection and auth helper functions
-  index.php        — Main application (all pages in one file)
-  login.php        — Login form and POST handler
-  register.php     — Registration form and POST handler
-  logout.php       — Destroys session and redirects to login
-  script.js        — Minimal JS: tab navigation, weather API, calculator
-  styles.css       — Responsive visual design
-  database.sql     — MySQL schema and sample data
-  README.md
-  PROJECT_REPORT.md
+FarmerDSS/
+  index.php              — Main application (dashboard, advisor, market, admin)
+  login.php              — Login page
+  register.php           — Registration page
+  logout.php             — Session logout
+  README.md              — Project overview and setup guide
+
+  assets/
+    images/              — All photos and logos (logo.png, paddy_hero.png, farm_grid*.png)
+    css/
+      styles.css         — Responsive visual design
+    js/
+      script.js          — Tab navigation, weather API, calculator
+
+  includes/
+    db.php               — Database connection and auth helpers
+
+  api/
+    receive_soil_data.php — IoT endpoint for soil sensor data
+
+  sql/
+    database.sql         — Full MySQL schema and sample data
+    migrate_soil_iot.sql — Optional migration for existing databases
 ```
 
 ## XAMPP Setup
@@ -65,7 +77,7 @@ http://localhost/phpmyadmin
    - Click **New** on the left sidebar, name it `farmer_dss`, then click **Create**.
    - Select the new `farmer_dss` database.
    - Click the **Import** tab at the top.
-   - Choose the `database.sql` file from the project folder.
+   - Choose the `sql/database.sql` file from the project folder.
    - Click **Go**.
 
 6. Open the project:
@@ -134,7 +146,7 @@ Result: Paddy scores 95 because it matches all five conditions.
 
 ## Database Connection Settings
 
-The database connection is in `db.php`:
+The database connection is in `includes/db.php`:
 
 ```php
 $host = 'localhost';
@@ -143,7 +155,7 @@ $user = 'root';
 $pass = '';
 ```
 
-If your MySQL password is different, update `db.php`.
+If your MySQL password is different, update `includes/db.php`.
 
 ## Future Improvements
 

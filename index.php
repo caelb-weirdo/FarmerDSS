@@ -1,5 +1,5 @@
 <?php
-require_once 'db.php';
+require_once __DIR__ . '/includes/db.php';
 requireLogin();
 
 // --- Action Handlers ---
@@ -66,6 +66,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
                 }
             }
 
+            $minPh = ($_POST['min_ph'] ?? '') !== '' ? (float)$_POST['min_ph'] : null;
+            $maxPh = ($_POST['max_ph'] ?? '') !== '' ? (float)$_POST['max_ph'] : null;
+            $minMoisture = ($_POST['min_moisture'] ?? '') !== '' ? (float)$_POST['min_moisture'] : null;
+            $maxMoisture = ($_POST['max_moisture'] ?? '') !== '' ? (float)$_POST['max_moisture'] : null;
+            $maxEc = ($_POST['max_ec'] ?? '') !== '' ? (float)$_POST['max_ec'] : null;
+            if ($minPh !== null || $maxPh !== null || $minMoisture !== null || $maxMoisture !== null || $maxEc !== null) {
+                $soilReqStmt = $pdo->prepare('INSERT INTO crop_soil_requirements (crop_id, min_ph, max_ph, min_moisture, max_moisture, max_ec) VALUES (?, ?, ?, ?, ?, ?)');
+                $soilReqStmt->execute([$cropId, $minPh, $maxPh, $minMoisture, $maxMoisture, $maxEc]);
+            }
+
             $pdo->commit();
             $message = "Crop added successfully.";
         } catch (Exception $e) {
@@ -73,6 +83,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $message = "Error adding crop: " . $e->getMessage();
             $messageType = 'error';
         }
+    } elseif ($_POST['action'] === 'add_field') {
+        requireAdmin();
+        $stmt = $pdo->prepare('INSERT INTO fields (field_name, district, soil_type, owner_user_id) VALUES (?, ?, ?, ?)');
+        $ownerId = !empty($_POST['owner_user_id']) ? (int)$_POST['owner_user_id'] : null;
+        $stmt->execute([
+            trim($_POST['field_name']),
+            trim($_POST['district']),
+            $_POST['soil_type'],
+            $ownerId
+        ]);
+        $message = "Field added successfully.";
+    } elseif ($_POST['action'] === 'add_soil_reading') {
+        requireAdmin();
+        $fieldId = (int)$_POST['field_id'];
+        $moisture = ($_POST['moisture'] ?? '') !== '' ? (float)$_POST['moisture'] : null;
+        $ph = ($_POST['ph'] ?? '') !== '' ? (float)$_POST['ph'] : null;
+        $ec = ($_POST['ec'] ?? '') !== '' ? (float)$_POST['ec'] : null;
+        $temp = ($_POST['temp'] ?? '') !== '' ? (float)$_POST['temp'] : null;
+        if ($fieldId <= 0 || $moisture === null || $ph === null) {
+            $message = "Field, moisture, and pH are required for soil readings.";
+            $messageType = 'error';
+        } else {
+            $stmt = $pdo->prepare('INSERT INTO soil_readings (field_id, moisture, ph, ec, temperature, created_at) VALUES (?, ?, ?, ?, ?, NOW())');
+            $stmt->execute([$fieldId, $moisture, $ph, $ec, $temp]);
+            $message = "Soil reading saved.";
+        }
+    } elseif ($_POST['action'] === 'update_soil_requirements') {
+        requireAdmin();
+        $cropId = (int)$_POST['crop_id'];
+        $minPh = ($_POST['min_ph'] ?? '') !== '' ? (float)$_POST['min_ph'] : null;
+        $maxPh = ($_POST['max_ph'] ?? '') !== '' ? (float)$_POST['max_ph'] : null;
+        $minMoisture = ($_POST['min_moisture'] ?? '') !== '' ? (float)$_POST['min_moisture'] : null;
+        $maxMoisture = ($_POST['max_moisture'] ?? '') !== '' ? (float)$_POST['max_moisture'] : null;
+        $maxEc = ($_POST['max_ec'] ?? '') !== '' ? (float)$_POST['max_ec'] : null;
+        $exists = $pdo->prepare('SELECT id FROM crop_soil_requirements WHERE crop_id = ?');
+        $exists->execute([$cropId]);
+        if ($exists->fetch()) {
+            $stmt = $pdo->prepare('UPDATE crop_soil_requirements SET min_ph = ?, max_ph = ?, min_moisture = ?, max_moisture = ?, max_ec = ? WHERE crop_id = ?');
+            $stmt->execute([$minPh, $maxPh, $minMoisture, $maxMoisture, $maxEc, $cropId]);
+        } else {
+            $stmt = $pdo->prepare('INSERT INTO crop_soil_requirements (crop_id, min_ph, max_ph, min_moisture, max_moisture, max_ec) VALUES (?, ?, ?, ?, ?, ?)');
+            $stmt->execute([$cropId, $minPh, $maxPh, $minMoisture, $maxMoisture, $maxEc]);
+        }
+        $message = "Soil requirements updated.";
     }
 }
 
@@ -83,6 +137,58 @@ $cropRows = $pdo->query('SELECT * FROM crops ORDER BY id')->fetchAll();
 $guideRows = $pdo->query('SELECT crop_id, guide_text FROM crop_guides ORDER BY id')->fetchAll();
 $fertilizerRows = $pdo->query('SELECT c.crop_name, f.fertilizer_type, f.kg_per_acre, f.price_per_kg, f.schedule_text FROM fertilizer_rules f JOIN crops c ON c.id = f.crop_id ORDER BY c.id, f.id')->fetchAll();
 $marketRows = $pdo->query('SELECT * FROM market_prices ORDER BY id')->fetchAll();
+
+$fieldRows = [];
+$soilReqRows = [];
+$latestSoilByField = [];
+$fieldCount = 0;
+try {
+    if (isAdmin()) {
+        $fieldRows = $pdo->query('SELECT f.*, u.full_name AS owner_name FROM fields f LEFT JOIN users u ON u.id = f.owner_user_id ORDER BY f.id')->fetchAll();
+    } else {
+        $fieldStmt = $pdo->prepare('SELECT f.*, u.full_name AS owner_name FROM fields f LEFT JOIN users u ON u.id = f.owner_user_id WHERE f.owner_user_id = ? OR f.owner_user_id IS NULL ORDER BY f.id');
+        $fieldStmt->execute([$_SESSION['user_id']]);
+        $fieldRows = $fieldStmt->fetchAll();
+    }
+    $fieldCount = count($fieldRows);
+    $soilReqRows = $pdo->query('SELECT * FROM crop_soil_requirements')->fetchAll();
+    $readingRows = $pdo->query('
+        SELECT sr.* FROM soil_readings sr
+        INNER JOIN (
+            SELECT field_id, MAX(id) AS max_id FROM soil_readings GROUP BY field_id
+        ) latest ON sr.id = latest.max_id
+    ')->fetchAll();
+    foreach ($readingRows as $reading) {
+        $latestSoilByField[(int)$reading['field_id']] = $reading;
+    }
+} catch (PDOException $e) {
+    // Tables may not exist until migration is run
+}
+
+$requirementsByCropId = [];
+foreach ($soilReqRows as $req) {
+    $requirementsByCropId[(int)$req['crop_id']] = $req;
+}
+
+$recentReadings = [];
+try {
+    $recentReadings = $pdo->query('
+        SELECT sr.*, f.field_name FROM soil_readings sr
+        JOIN fields f ON f.id = sr.field_id
+        ORDER BY sr.created_at DESC LIMIT 10
+    ')->fetchAll();
+} catch (PDOException $e) {
+    // ignore
+}
+
+$allUsers = [];
+if (isAdmin()) {
+    try {
+        $allUsers = $pdo->query('SELECT id, full_name, email FROM users WHERE role = \'Farmer\' ORDER BY full_name')->fetchAll();
+    } catch (PDOException $e) {
+        // ignore
+    }
+}
 
 $guidesByCropId = [];
 foreach ($guideRows as $guide) {
@@ -104,6 +210,7 @@ $crops = [];
 foreach ($cropRows as $crop) {
     $cropId = (int) $crop['id'];
     $crops[] = [
+        'id' => $cropId,
         'crop' => $crop['crop_name'],
         'bestSoils' => csv_to_array($crop['best_soils']),
         'bestSeasons' => csv_to_array($crop['best_seasons']),
@@ -125,21 +232,75 @@ $postSeason = $_POST['season_type'] ?? '';
 $postWater = $_POST['water_source'] ?? '';
 $postBudget = $_POST['budget_level'] ?? '';
 $postDemand = $_POST['market_demand'] ?? '';
+$postFieldId = isset($_POST['field_id']) && $_POST['field_id'] !== '' ? (int)$_POST['field_id'] : 0;
+
+$soilReading = null;
+$selectedField = null;
+if ($postFieldId > 0) {
+    foreach ($fieldRows as $field) {
+        if ((int)$field['id'] === $postFieldId) {
+            $selectedField = $field;
+            break;
+        }
+    }
+    $soilReading = $latestSoilByField[$postFieldId] ?? null;
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'recommend') {
     $showRecommendations = true;
+    if ($postFieldId > 0 && !$soilReading) {
+        $stmt = $pdo->prepare('SELECT * FROM soil_readings WHERE field_id = ? ORDER BY id DESC LIMIT 1');
+        $stmt->execute([$postFieldId]);
+        $soilReading = $stmt->fetch() ?: null;
+    }
 
     foreach ($crops as $rule) {
         $score = 40;
         $reasons = [];
+        $cropId = $rule['id'];
         
         if (in_array($postSoil, $rule['bestSoils'])) { $score += 15; $reasons[] = $rule['crop'] . " suits " . strtolower($postSoil) . " soil."; }
         if (in_array($postSeason, $rule['bestSeasons'])) { $score += 15; $reasons[] = $postSeason . " season is suitable."; }
         if (in_array($postWater, $rule['bestWater'])) { $score += 15; $reasons[] = strtolower($postWater) . " water source supports " . $rule['crop'] . "."; }
         if ($rule['budget'] === $postBudget) { $score += 8; $reasons[] = strtolower($postBudget) . " budget matches."; }
         if ($rule['demand'] === $postDemand) { $score += 7; $reasons[] = "Market demand is " . strtolower($postDemand) . "."; }
+
+        if ($soilReading && isset($requirementsByCropId[$cropId])) {
+            $req = $requirementsByCropId[$cropId];
+
+            if ($req['min_ph'] !== null && $req['max_ph'] !== null && $soilReading['ph'] !== null) {
+                if ($soilReading['ph'] >= $req['min_ph'] && $soilReading['ph'] <= $req['max_ph']) {
+                    $score += 10;
+                    $reasons[] = "Soil pH (" . $soilReading['ph'] . ") is within the ideal range for " . $rule['crop'] . ".";
+                } else {
+                    $score -= 10;
+                    $reasons[] = "Soil pH (" . $soilReading['ph'] . ") is outside the ideal range for " . $rule['crop'] . ".";
+                }
+            }
+
+            if ($req['min_moisture'] !== null && $req['max_moisture'] !== null && $soilReading['moisture'] !== null) {
+                if ($soilReading['moisture'] >= $req['min_moisture'] && $soilReading['moisture'] <= $req['max_moisture']) {
+                    $score += 8;
+                    $reasons[] = "Soil moisture (" . $soilReading['moisture'] . "%) suits " . $rule['crop'] . ".";
+                } else {
+                    $score -= 8;
+                    $reasons[] = "Soil moisture (" . $soilReading['moisture'] . "%) is not ideal for " . $rule['crop'] . ".";
+                }
+            }
+
+            if ($req['max_ec'] !== null && $soilReading['ec'] !== null) {
+                if ($soilReading['ec'] <= $req['max_ec']) {
+                    $score += 5;
+                    $reasons[] = "Soil salinity (EC " . $soilReading['ec'] . ") is acceptable.";
+                } else {
+                    $score -= 5;
+                    $reasons[] = "Soil salinity (EC " . $soilReading['ec'] . ") is too high for " . $rule['crop'] . ".";
+                }
+            }
+        }
         
         if ($score > 100) $score = 100;
+        if ($score < 0) $score = 0;
         
         $rec = $rule;
         $rec['score'] = $score;
@@ -180,9 +341,9 @@ usort($rankedMarkets, function($a, $b) { return $b['finalScore'] - $a['finalScor
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Farmers DSS</title>
-    <link rel="icon" type="image/png" href="logo.png" />
-    <link rel="apple-touch-icon" href="logo.png" />
-    <link rel="stylesheet" href="styles.css?v=20230624" />
+    <link rel="icon" type="image/png" href="assets/images/logo.png" />
+    <link rel="apple-touch-icon" href="assets/images/logo.png" />
+    <link rel="stylesheet" href="assets/css/styles.css?v=20230624" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
@@ -190,15 +351,18 @@ usort($rankedMarkets, function($a, $b) { return $b['finalScore'] - $a['finalScor
         // Pass essential data to minimal JS
         var fertilizerRules = <?php echo json_encode($fertilizerRules); ?>;
         var cropGuides = <?php echo json_encode($crops); ?>;
-        var START_PAGE = <?php echo json_encode((isset($_POST['action']) && $_POST['action'] === 'recommend') ? 'crop-advisory' : ((isset($_POST['action']) && ($_POST['action'] === 'update_price' || $_POST['action'] === 'add_crop')) ? 'admin-panel' : 'dashboard')); ?>;
+        var START_PAGE = <?php echo json_encode((isset($_POST['action']) && $_POST['action'] === 'recommend') ? 'crop-advisory' : ((isset($_POST['action']) && in_array($_POST['action'], ['update_price', 'add_crop', 'add_field', 'add_soil_reading', 'update_soil_requirements'], true)) ? 'admin-panel' : 'dashboard')); ?>;
         var PHP_MESSAGE = <?php echo json_encode($message); ?>;
+        var fieldOptions = <?php echo json_encode(array_map(function($f) {
+            return ['id' => (int)$f['id'], 'name' => $f['field_name'], 'district' => $f['district'], 'soil_type' => $f['soil_type']];
+        }, $fieldRows)); ?>;
     </script>
   </head>
   <body>
     <div class="app-shell">
       <header class="topbar">
         <a class="brand" href="#dashboard" aria-label="Farmers DSS home" onclick="showPage('dashboard'); return false;">
-          <img src="logo.png" alt="Farmers DSS Logo" class="brand-mark brand-logo" />
+          <img src="assets/images/logo.png" alt="Farmers DSS Logo" class="brand-mark brand-logo" />
           <span>
             <span class="brand-label">Farmers DSS</span>
             <span class="brand-subtitle">Smart decisions for every harvest</span>
@@ -276,9 +440,9 @@ usort($rankedMarkets, function($a, $b) { return $b['finalScore'] - $a['finalScor
 
           <!-- ── FARM PHOTO GRID ────────────────────── -->
           <div class="farm-photo-grid">
-            <img src="paddy_hero.png"  alt="Paddy field overview" />
-            <img src="farm_grid1.png"  alt="Rice seedlings" />
-            <img src="farm_grid2.png"  alt="Planting rice" />
+            <img src="assets/images/paddy_hero.png"  alt="Paddy field overview" />
+            <img src="assets/images/farm_grid1.png"  alt="Rice seedlings" />
+            <img src="assets/images/farm_grid2.png"  alt="Planting rice" />
           </div>
 
 
@@ -311,7 +475,7 @@ usort($rankedMarkets, function($a, $b) { return $b['finalScore'] - $a['finalScor
               </h2>
               <p id="daily-advice-text">
                 <?php if($showRecommendations): ?>
-                  Based on <?php echo htmlspecialchars($postSeason); ?> season, <?php echo htmlspecialchars(strtolower($postSoil)); ?> soil, <?php echo htmlspecialchars(strtolower($postWater)); ?> water, and <?php echo htmlspecialchars(strtolower($postDemand)); ?> market demand.
+                  Based on <?php echo htmlspecialchars($postSeason); ?> season, <?php echo htmlspecialchars(strtolower($postSoil)); ?> soil, <?php echo htmlspecialchars(strtolower($postWater)); ?> water, and <?php echo htmlspecialchars(strtolower($postDemand)); ?> market demand<?php if ($soilReading): ?> — adjusted using live soil data (pH <?php echo htmlspecialchars((string)$soilReading['ph']); ?>, moisture <?php echo htmlspecialchars((string)$soilReading['moisture']); ?>%)<?php endif; ?>.
                 <?php else: ?>
                   Go to the Crop Advisor tab to generate your custom recommendation based on your land and season.
                 <?php endif; ?>
@@ -331,8 +495,8 @@ usort($rankedMarkets, function($a, $b) { return $b['finalScore'] - $a['finalScor
             </article>
             <article class="metric-card">
               <p class="label">Field Summary</p>
-              <strong id="field-summary-value">12 Active Fields</strong>
-              <span>6.8 acres under planning</span>
+              <strong id="field-summary-value"><?php echo $fieldCount; ?> Active Field<?php echo $fieldCount === 1 ? '' : 's'; ?></strong>
+              <span><?php echo $fieldCount > 0 ? 'IoT-ready soil monitoring enabled' : 'Add fields in Admin Panel'; ?></span>
             </article>
             <article class="metric-card">
               <p class="label">System Logs</p>
@@ -370,6 +534,15 @@ usort($rankedMarkets, function($a, $b) { return $b['finalScore'] - $a['finalScor
               <form action="index.php" method="POST">
                 <input type="hidden" name="action" value="recommend">
                 <div class="form-grid">
+                    <div class="form-group">
+                    <label for="field-id">Farm Field (optional)</label>
+                    <select id="field-id" name="field_id">
+                        <option value="">Manual inputs only</option>
+                        <?php foreach ($fieldRows as $field): ?>
+                        <option value="<?php echo (int)$field['id']; ?>" <?php if ($postFieldId === (int)$field['id']) echo 'selected'; ?>><?php echo htmlspecialchars($field['field_name'] . ' (' . $field['district'] . ')'); ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                    </div>
                     <div class="form-group">
                     <label for="district">District</label>
                     <select id="district" name="district">
@@ -426,6 +599,18 @@ usort($rankedMarkets, function($a, $b) { return $b['finalScore'] - $a['finalScor
                     Generate Recommendations
                 </button>
               </form>
+              <?php if ($soilReading && $selectedField): ?>
+              <div class="soil-reading-strip" style="margin-top:1rem; padding:12px; background:var(--surface-soft); border-radius:8px; border:1px solid var(--border); font-size:0.9rem;">
+                <strong>Latest soil data — <?php echo htmlspecialchars($selectedField['field_name']); ?></strong>
+                <p style="margin:6px 0 0;">pH: <?php echo htmlspecialchars((string)$soilReading['ph']); ?> · Moisture: <?php echo htmlspecialchars((string)$soilReading['moisture']); ?>% · EC: <?php echo htmlspecialchars((string)($soilReading['ec'] ?? '—')); ?> · Temp: <?php echo htmlspecialchars((string)($soilReading['temperature'] ?? '—')); ?>°C</p>
+                <span style="color:var(--muted); font-size:0.8rem;">Recorded <?php echo htmlspecialchars($soilReading['created_at']); ?></span>
+              </div>
+              <?php elseif ($postFieldId > 0 && $selectedField): ?>
+              <div class="soil-reading-strip" style="margin-top:1rem; padding:12px; background:rgba(239,68,68,0.08); border-radius:8px; border:1px solid rgba(239,68,68,0.2); font-size:0.9rem;">
+                <strong>No soil readings yet for <?php echo htmlspecialchars($selectedField['field_name']); ?></strong>
+                <p style="margin:6px 0 0;">Use the IoT endpoint or Admin Panel to add readings.</p>
+              </div>
+              <?php endif; ?>
             </article>
 
             <article class="panel advisory-results">
@@ -460,8 +645,8 @@ usort($rankedMarkets, function($a, $b) { return $b['finalScore'] - $a['finalScor
             </div>
             <ul class="reason-list" id="reason-list">
                 <?php if ($showRecommendations && $topCrop): ?>
-                    <li>District selected: <?php echo htmlspecialchars($postDistrict); ?>.</li>
-                    <li>The system compared soil, season, water source, budget, and demand.</li>
+                    <li>District selected: <?php echo htmlspecialchars($postDistrict); ?><?php if ($selectedField): ?> · Field: <?php echo htmlspecialchars($selectedField['field_name']); ?><?php endif; ?>.</li>
+                    <li>The system compared soil type, season, water source, budget, demand<?php if ($soilReading): ?>, and live soil parameters (pH, moisture, EC)<?php endif; ?>.</li>
                     <?php foreach ($topCrop['reasons'] as $r): ?>
                         <li><?php echo htmlspecialchars($r); ?></li>
                     <?php endforeach; ?>
@@ -752,8 +937,214 @@ usort($rankedMarkets, function($a, $b) { return $b['finalScore'] - $a['finalScor
                 </div>
               </div>
 
+              <div class="form-section-title" style="margin-top: 1.5rem; font-weight: 700; color: var(--accent); border-bottom: 1px solid var(--border); padding-bottom: 5px;">Soil Parameter Requirements (IoT DSS)</div>
+              <div class="form-grid" style="margin-top: 1rem;">
+                <div class="form-group">
+                  <label for="add-min-ph">Min pH</label>
+                  <input type="number" id="add-min-ph" name="min_ph" step="0.1" min="0" max="14" placeholder="e.g. 5.5" />
+                </div>
+                <div class="form-group">
+                  <label for="add-max-ph">Max pH</label>
+                  <input type="number" id="add-max-ph" name="max_ph" step="0.1" min="0" max="14" placeholder="e.g. 7.0" />
+                </div>
+                <div class="form-group">
+                  <label for="add-min-moisture">Min Moisture %</label>
+                  <input type="number" id="add-min-moisture" name="min_moisture" step="0.1" min="0" placeholder="e.g. 40" />
+                </div>
+                <div class="form-group">
+                  <label for="add-max-moisture">Max Moisture %</label>
+                  <input type="number" id="add-max-moisture" name="max_moisture" step="0.1" min="0" placeholder="e.g. 70" />
+                </div>
+                <div class="form-group">
+                  <label for="add-max-ec">Max EC (salinity)</label>
+                  <input type="number" id="add-max-ec" name="max_ec" step="0.1" min="0" placeholder="e.g. 2.0" />
+                </div>
+              </div>
+
               <button type="submit" class="primary-button" style="margin-top: 1.5rem;">Add Crop & Details</button>
             </form>
+          </article>
+
+          <article class="panel" style="margin-top: 2rem;">
+            <div class="card-header">
+              <p class="label">Crop Soil Requirements</p>
+              <span>Ideal pH, moisture, and EC ranges per crop</span>
+            </div>
+            <div class="table-wrap">
+              <table class="price-table">
+                <thead>
+                  <tr>
+                    <th>Crop</th>
+                    <th>Min pH</th>
+                    <th>Max pH</th>
+                    <th>Min Moisture</th>
+                    <th>Max Moisture</th>
+                    <th>Max EC</th>
+                    <th>Save</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <?php foreach ($cropRows as $crop): $req = $requirementsByCropId[(int)$crop['id']] ?? null; ?>
+                  <tr>
+                    <form method="POST" action="index.php">
+                      <input type="hidden" name="action" value="update_soil_requirements">
+                      <input type="hidden" name="crop_id" value="<?php echo (int)$crop['id']; ?>">
+                      <td><strong><?php echo htmlspecialchars($crop['crop_name']); ?></strong></td>
+                      <td><input type="number" name="min_ph" step="0.1" class="admin-input-small" value="<?php echo $req ? htmlspecialchars((string)$req['min_ph']) : ''; ?>" /></td>
+                      <td><input type="number" name="max_ph" step="0.1" class="admin-input-small" value="<?php echo $req ? htmlspecialchars((string)$req['max_ph']) : ''; ?>" /></td>
+                      <td><input type="number" name="min_moisture" step="0.1" class="admin-input-small" value="<?php echo $req ? htmlspecialchars((string)$req['min_moisture']) : ''; ?>" /></td>
+                      <td><input type="number" name="max_moisture" step="0.1" class="admin-input-small" value="<?php echo $req ? htmlspecialchars((string)$req['max_moisture']) : ''; ?>" /></td>
+                      <td><input type="number" name="max_ec" step="0.1" class="admin-input-small" value="<?php echo $req ? htmlspecialchars((string)$req['max_ec']) : ''; ?>" /></td>
+                      <td><button type="submit" class="outline-button">Save</button></td>
+                    </form>
+                  </tr>
+                  <?php endforeach; ?>
+                </tbody>
+              </table>
+            </div>
+          </article>
+
+          <article class="panel" style="margin-top: 2rem;">
+            <div class="card-header">
+              <p class="label">Farm Fields</p>
+              <span>Locations linked to IoT soil readings</span>
+            </div>
+            <div class="table-wrap" style="margin-bottom: 1.5rem;">
+              <table class="price-table">
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Field Name</th>
+                    <th>District</th>
+                    <th>Soil Type</th>
+                    <th>Owner</th>
+                    <th>Latest Reading</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <?php if (empty($fieldRows)): ?>
+                  <tr><td colspan="6">No fields yet. Add one below.</td></tr>
+                  <?php else: foreach ($fieldRows as $field):
+                    $lr = $latestSoilByField[(int)$field['id']] ?? null;
+                  ?>
+                  <tr>
+                    <td><?php echo (int)$field['id']; ?></td>
+                    <td><?php echo htmlspecialchars($field['field_name']); ?></td>
+                    <td><?php echo htmlspecialchars($field['district']); ?></td>
+                    <td><?php echo htmlspecialchars($field['soil_type']); ?></td>
+                    <td><?php echo htmlspecialchars($field['owner_name'] ?? 'Shared'); ?></td>
+                    <td><?php echo $lr ? 'pH ' . htmlspecialchars((string)$lr['ph']) . ', ' . htmlspecialchars((string)$lr['moisture']) . '%' : '—'; ?></td>
+                  </tr>
+                  <?php endforeach; endif; ?>
+                </tbody>
+              </table>
+            </div>
+            <form action="index.php" method="POST" class="admin-add-form">
+              <input type="hidden" name="action" value="add_field">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="add-field-name">Field Name</label>
+                  <input type="text" id="add-field-name" name="field_name" placeholder="e.g. North Paddy Plot" required />
+                </div>
+                <div class="form-group">
+                  <label for="add-field-district">District</label>
+                  <select id="add-field-district" name="district">
+                    <option value="Trincomalee">Trincomalee</option>
+                    <option value="Anuradhapura">Anuradhapura</option>
+                    <option value="Jaffna">Jaffna</option>
+                    <option value="Kandy">Kandy</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="add-field-soil">Soil Type</label>
+                  <select id="add-field-soil" name="soil_type">
+                    <option value="Alluvial">Alluvial</option>
+                    <option value="Laterite">Laterite</option>
+                    <option value="Sandy">Sandy</option>
+                    <option value="Clay">Clay</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="add-field-owner">Owner (optional)</label>
+                  <select id="add-field-owner" name="owner_user_id">
+                    <option value="">Shared / Demo</option>
+                    <?php foreach ($allUsers as $u): ?>
+                    <option value="<?php echo (int)$u['id']; ?>"><?php echo htmlspecialchars($u['full_name']); ?></option>
+                    <?php endforeach; ?>
+                  </select>
+                </div>
+              </div>
+              <button type="submit" class="primary-button" style="margin-top: 1rem;">Add Field</button>
+            </form>
+          </article>
+
+          <article class="panel" style="margin-top: 2rem;">
+            <div class="card-header">
+              <p class="label">Soil Readings</p>
+              <span>Manual entry or via IoT endpoint <code>api/receive_soil_data.php</code></span>
+            </div>
+            <form action="index.php" method="POST" class="admin-add-form" style="margin-bottom: 1.5rem;">
+              <input type="hidden" name="action" value="add_soil_reading">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label for="reading-field-id">Field</label>
+                  <select id="reading-field-id" name="field_id" required>
+                    <option value="">Select field</option>
+                    <?php foreach ($fieldRows as $field): ?>
+                    <option value="<?php echo (int)$field['id']; ?>"><?php echo htmlspecialchars($field['field_name']); ?></option>
+                    <?php endforeach; ?>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="reading-moisture">Moisture %</label>
+                  <input type="number" id="reading-moisture" name="moisture" step="0.1" required />
+                </div>
+                <div class="form-group">
+                  <label for="reading-ph">pH</label>
+                  <input type="number" id="reading-ph" name="ph" step="0.1" min="0" max="14" required />
+                </div>
+                <div class="form-group">
+                  <label for="reading-ec">EC</label>
+                  <input type="number" id="reading-ec" name="ec" step="0.1" />
+                </div>
+                <div class="form-group">
+                  <label for="reading-temp">Temperature °C</label>
+                  <input type="number" id="reading-temp" name="temp" step="0.1" />
+                </div>
+              </div>
+              <button type="submit" class="primary-button" style="margin-top: 1rem;">Save Reading</button>
+            </form>
+            <div class="table-wrap">
+              <table class="price-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Moisture</th>
+                    <th>pH</th>
+                    <th>EC</th>
+                    <th>Temp</th>
+                    <th>Recorded</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <?php if (empty($recentReadings)): ?>
+                  <tr><td colspan="6">No readings yet.</td></tr>
+                  <?php else: foreach ($recentReadings as $r): ?>
+                  <tr>
+                    <td><?php echo htmlspecialchars($r['field_name']); ?></td>
+                    <td><?php echo htmlspecialchars((string)$r['moisture']); ?>%</td>
+                    <td><?php echo htmlspecialchars((string)$r['ph']); ?></td>
+                    <td><?php echo htmlspecialchars((string)($r['ec'] ?? '—')); ?></td>
+                    <td><?php echo htmlspecialchars((string)($r['temperature'] ?? '—')); ?>°C</td>
+                    <td><?php echo htmlspecialchars($r['created_at']); ?></td>
+                  </tr>
+                  <?php endforeach; endif; ?>
+                </tbody>
+              </table>
+            </div>
+            <p style="margin-top:1rem; font-size:0.85rem; color:var(--muted);">
+              IoT test URL: <code>api/receive_soil_data.php?field_id=1&amp;moisture=22.8&amp;ph=6.5&amp;ec=0.9&amp;temp=28.4</code>
+            </p>
           </article>
         </section>
         <?php endif; ?>
@@ -878,7 +1269,7 @@ usort($rankedMarkets, function($a, $b) { return $b['finalScore'] - $a['finalScor
       <footer class="site-footer">
         <div class="footer-inner">
           <div class="footer-brand">
-            <img src="logo.png" alt="Farmers DSS Logo" class="footer-logo" />
+            <img src="assets/images/logo.png" alt="Farmers DSS Logo" class="footer-logo" />
             <div>
               <span class="footer-brand-name">Farmers DSS</span>
               <span class="footer-tagline">Smart decisions for every harvest</span>
@@ -977,6 +1368,6 @@ usort($rankedMarkets, function($a, $b) { return $b['finalScore'] - $a['finalScor
       </div>
     </div>
 
-    <script src="script.js"></script>
+    <script src="assets/js/script.js"></script>
   </body>
 </html>

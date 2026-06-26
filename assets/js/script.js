@@ -204,7 +204,30 @@ function renderDistrictWeatherCards() {
 }
 
 // ==========================================
-// 4. FERTILIZER CALCULATOR
+// 4b. FIELD AUTO-FILL (Crop Advisor)
+// ==========================================
+function initFieldSelector() {
+  var fieldSelect = el("field-id");
+  if (!fieldSelect || !window.fieldOptions) return;
+
+  fieldSelect.addEventListener("change", function () {
+    var id = parseInt(fieldSelect.value, 10);
+    if (!id) return;
+
+    for (var i = 0; i < fieldOptions.length; i++) {
+      if (fieldOptions[i].id === id) {
+        var districtEl = el("district");
+        var soilEl = el("soil-type");
+        if (districtEl) districtEl.value = fieldOptions[i].district;
+        if (soilEl) soilEl.value = fieldOptions[i].soil_type;
+        break;
+      }
+    }
+  });
+}
+
+// ==========================================
+// 5. FERTILIZER CALCULATOR
 // ==========================================
 function updateCalculator() {
   var landInput  = el("land-size");
@@ -309,6 +332,8 @@ document.addEventListener("DOMContentLoaded", function () {
   // Calculator inputs
   if (el("land-size"))    el("land-size").addEventListener("input", updateCalculator);
   if (el("target-crop"))  el("target-crop").addEventListener("change", updateCalculator);
+
+  initFieldSelector();
 
   // Escape key closes any open modal
   document.addEventListener("keydown", function(e) {
